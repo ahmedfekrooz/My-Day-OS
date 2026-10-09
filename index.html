@@ -39,8 +39,8 @@ input,select,textarea{font-size:16px}
 .prayer-marker small{display:none}
 
 /* v5: ten-minute ruler between hour marks */
-.minute-scale-tick{position:absolute;z-index:3;left:var(--lane-left);width:9px;border-top:1px solid color-mix(in srgb,var(--muted) 70%,transparent);height:0;pointer-events:none}
-.minute-scale-label{position:absolute;z-index:3;left:0;width:48px;text-align:right;padding-right:4px;transform:translateY(-5px);font-size:8px;line-height:10px;color:var(--muted);opacity:.9;pointer-events:none;font-variant-numeric:tabular-nums}
+.minute-scale-tick{position:absolute;z-index:3;left:var(--lane-left);width:6px;border-top:1px solid color-mix(in srgb,var(--muted) 65%,transparent);height:0;pointer-events:none}
+.minute-scale-label{position:absolute;z-index:3;left:calc(var(--lane-left) - 31px);width:23px;text-align:right;padding-right:8px;box-sizing:border-box;transform:translateY(-4px);font-size:7px;line-height:8px;color:var(--muted);opacity:.82;pointer-events:none;font-variant-numeric:tabular-nums;letter-spacing:-.15px}
 .time-lane:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;background:var(--surface2)}
 .week-grid{grid-template-columns:repeat(7,minmax(115px,1fr));overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .table-wrap{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
@@ -111,6 +111,14 @@ input,select,textarea{font-size:16px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
+
+
+/* Repeating reminders */
+#alarmOverlay{z-index:10000}
+#alarmOverlay .modal{border:1px solid var(--accent);box-shadow:0 18px 60px #0005}
+.alarm-active{animation:alarmPulse 1.4s ease-in-out infinite}
+@keyframes alarmPulse{50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 28%,transparent)}}
+#notificationStatus{overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -185,6 +193,15 @@ input,select,textarea{font-size:16px}
     <div class="card"><h2 style="font-size:16px">Prayer time location</h2><p class="small-muted">Prayer times are fetched from AlAdhan when online. Verify the calculation method with your local authority.</p>
       <div class="form-grid"><div class="field"><label for="prayerCity">City</label><input id="prayerCity" value="Cairo" placeholder="e.g. Cairo"></div><div class="field"><label for="prayerCountry">Country</label><input id="prayerCountry" value="Egypt" placeholder="e.g. Egypt"></div><div class="field full"><label for="prayerMethod">Calculation method</label><select id="prayerMethod"><option value="5">Egyptian General Authority of Survey</option><option value="3">Muslim World League</option><option value="2">ISNA</option><option value="4">Umm Al-Qura University, Makkah</option><option value="1">University of Islamic Sciences, Karachi</option></select></div></div><button class="btn primary" id="savePrayer">Save & refresh prayer times</button><p id="prayerSettingsStatus" class="small-muted"></p>
     </div>
+    <div class="card"><h2 style="font-size:16px">Notifications & alarms</h2>
+      <p class="small-muted">Task alarms repeat until you stop them. Prayer alarms use your selected Adhan audio. For reliable testing, keep My Day OS open; iPhone browsers may suspend alarms when the app is closed or in the background.</p>
+      <div class="setting-row"><div><strong>Enable notifications</strong><small>Allow system notifications where supported.</small></div><button class="btn primary" id="enableNotifications">Enable</button></div>
+      <div class="field"><label for="taskAlarmRepeat">Repeat task alarm every</label><select id="taskAlarmRepeat"><option value="1">1 minute</option><option value="5">5 minutes</option><option value="10">10 minutes</option></select></div>
+      <div class="field"><label for="adhanAudio">Adhan audio file (MP3, M4A, WAV)</label><input id="adhanAudio" type="file" accept="audio/*"><small class="small-muted">Choose an audio file from Files. It is saved on this device only. Keep the file under 5 MB.</small></div>
+      <div class="setting-row"><div><strong>Test task alarm</strong><small>Test the repeating sound and Stop button.</small></div><button class="btn" id="testTaskAlarm">Test</button></div>
+      <div class="setting-row"><div><strong>Test Adhan audio</strong><small>Play the selected Adhan file.</small></div><button class="btn" id="testAdhan">Test</button></div>
+      <p id="notificationStatus" class="small-muted" role="status"></p>
+    </div>
     <div class="card"><h2 style="font-size:16px">Your data</h2><p class="small-muted">Phase 1 stores tasks and preferences in this browser on this device. It does not yet sync between devices or provide account backup.</p><div class="setting-row"><div><strong>Export data</strong><small>Download a JSON backup.</small></div><button class="btn" id="exportData">Export</button></div><div class="setting-row"><div><strong>Import data</strong><small>Restore a previously exported backup.</small></div><button class="btn" id="importDataBtn">Import</button><input type="file" id="importFile" accept="application/json" class="hide"></div><div class="setting-row"><div><strong>Reset all local data</strong><small>Cannot be undone.</small></div><button class="btn danger" id="resetData">Reset</button></div></div>
   </div>
 </section>
@@ -206,10 +223,17 @@ input,select,textarea{font-size:16px}
   <p id="conflictWarning" class="small-muted" role="status"></p><div class="modal-actions"><button type="button" class="btn danger hide" id="deleteTask">Delete</button><div class="right"><button type="button" class="btn" id="cancelModal">Cancel</button><button type="submit" class="btn primary">Save task</button></div></div></form>
 </div></div>
 <div class="modal-backdrop" id="simpleModal" role="dialog" aria-modal="true"><div class="modal"><div class="modal-head"><h2 id="simpleTitle">Details</h2><button class="btn ghost iconbtn" id="simpleClose">×</button></div><div id="simpleBody"></div><div class="modal-actions"><span></span><div class="right"><button class="btn" id="simpleCancel">Cancel</button><button class="btn primary" id="simpleSave">Save</button></div></div></div></div>
+<div id="alarmOverlay" class="modal-backdrop" role="alertdialog" aria-modal="true" aria-labelledby="alarmTitle">
+ <div class="modal">
+  <div class="modal-head"><h2 id="alarmTitle">Alarm</h2></div>
+  <p id="alarmMessage" class="small-muted">A scheduled reminder is due.</p>
+  <div class="modal-actions"><span></span><div class="right"><button type="button" class="btn primary" id="stopAlarm">Stop alarm</button></div></div>
+ </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 const STORE='my-day-os-v1';
-const defaultData={tasks:[],goals:[],habits:[],reviews:{},settings:{language:'en',theme:'system',timeFormat:'24',firstDay:0,wakeTime:'06:30',bedTime:'23:00',workStart:'08:00',workEnd:'17:00',commute:60,breakDuration:10,prayerCity:'Cairo',prayerCountry:'Egypt',prayerMethod:'5'},prayerCache:{}};
+const defaultData={tasks:[],goals:[],habits:[],reviews:{},settings:{language:'en',theme:'system',timeFormat:'24',firstDay:0,wakeTime:'06:30',bedTime:'23:00',workStart:'08:00',workEnd:'17:00',commute:60,breakDuration:10,prayerCity:'Cairo',prayerCountry:'Egypt',prayerMethod:'5',taskAlarmRepeat:1,notificationsEnabled:false},prayerCache:{},alarmLog:{}};
 let data=loadData(), selectedDate=isoDate(new Date()), currentPage='today', weekOffset=0, toastTimer;
 const $=id=>document.getElementById(id);
 function loadData(){try{return {...structuredClone(defaultData),...JSON.parse(localStorage.getItem(STORE)||'{}'),settings:{...defaultData.settings,...(JSON.parse(localStorage.getItem(STORE)||'{}').settings||{})}}}catch(e){return structuredClone(defaultData)}}
@@ -243,7 +267,7 @@ function renderTimeline(tasks){
  let html='';
  for(let m=start*60;m<end*60;m+=step){
   const rowEnd=m+step,hour=Math.floor(m/60),minute=m%60;
-  const label=minute===0?fmtTime(`${String(hour).padStart(2,'0')}:00`):'';
+  const label=minute===0?fmtTaskTime(`${String(hour).padStart(2,'0')}:00`):'';
   html+=`<div class="time-row"><div class="time-label">${label}</div><div class="time-lane drop-target" data-time="${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}" data-slot-end="${minToTime(rowEnd)}"></div></div>`;
  }
  root.innerHTML=html;
@@ -272,7 +296,7 @@ function renderTimeline(tasks){
  prayers.forEach(p=>{
   overlay('prayer-range',p.start,p.end);
   const top=p.start*pxPerMinute;
-  const label=`☾ ${p.name} · ${fmtTime(minToTime(p.start))}–${fmtTime(minToTime(p.end))}`;
+  const label=`☾ ${p.name} · ${fmtTaskTime(minToTime(p.start))}–${fmtTaskTime(minToTime(p.end))}`;
   root.insertAdjacentHTML('beforeend',`<div class="prayer-marker" aria-label="${p.name} prayer time window" style="left:${left+4}px;width:${Math.max(40,width-8)}px;top:${top+2}px;height:${Math.min(25,Math.max(18,(p.end-p.start)*pxPerMinute-3))}px">${esc(label)}</div>`);
  });
  scheduled.forEach(t=>{
@@ -320,8 +344,107 @@ function minToTime(m){return `${String(Math.floor(m/60)).padStart(2,'0')}:${Stri
 function saveSettings(keys){keys.forEach(k=>{if($(k))data.settings[k]=$(k).value});persist();applyTheme();applyLanguage();renderPage()}
 function exportData(){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='my-day-os-backup.json';a.click();URL.revokeObjectURL(url);toast('Backup exported')}
 function importData(file){const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x||!Array.isArray(x.tasks)||!x.settings)throw new Error('Invalid backup');if(!confirm('Import will replace the current local data. Continue?'))return;data={...structuredClone(defaultData),...x,settings:{...defaultData.settings,...x.settings}};persist();renderPage();toast('Backup imported')}catch(e){toast('Could not import this backup file')}};r.readAsText(file)}
+
+const ALARM_DB='my-day-os-audio-v1';
+let alarmTimer=null, repeatTimer=null, activeAlarm=null, adhanObjectUrl=null, taskAlarmAudio=null;
+function notificationSupported(){return 'Notification' in window}
+function setNotificationStatus(message){const el=$('notificationStatus');if(el)el.textContent=message}
+function openAudioDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open(ALARM_DB,1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('audio'))req.result.createObjectStore('audio')};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+async function saveAdhanFile(file){
+ if(!file)return;
+ if(file.size>5*1024*1024){toast('Please choose an audio file smaller than 5 MB.');return}
+ if(!file.type.startsWith('audio/')){toast('Choose an audio file.');return}
+ try{const db=await openAudioDb();await new Promise((resolve,reject)=>{const tx=db.transaction('audio','readwrite');tx.objectStore('audio').put(file,'adhan');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();await loadAdhanAudio();setNotificationStatus('Adhan audio saved on this device.');toast('Adhan audio saved')}
+ catch(e){setNotificationStatus('Could not save audio on this device. Try a smaller file.')}
+}
+async function loadAdhanAudio(){
+ try{const db=await openAudioDb();const file=await new Promise((resolve,reject)=>{const tx=db.transaction('audio','readonly'),req=tx.objectStore('audio').get('adhan');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error)});db.close();if(adhanObjectUrl)URL.revokeObjectURL(adhanObjectUrl);adhanObjectUrl=file?URL.createObjectURL(file):null;return adhanObjectUrl}catch(e){return null}
+}
+function playTaskTone(){
+ try{
+  if(!taskAlarmAudio){taskAlarmAudio=new Audio();taskAlarmAudio.src='';}
+  const Ctx=window.AudioContext||window.webkitAudioContext;
+  if(Ctx){const ctx=new Ctx();const now=ctx.currentTime;[0,.28,.56].forEach((offset,i)=>{const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=i===1?880:660;gain.gain.setValueAtTime(.0001,now+offset);gain.gain.exponentialRampToValueAtTime(.16,now+offset+.02);gain.gain.exponentialRampToValueAtTime(.0001,now+offset+.2);osc.connect(gain);gain.connect(ctx.destination);osc.start(now+offset);osc.stop(now+offset+.22)});setTimeout(()=>ctx.close(),1200)}
+ }catch(e){}
+}
+async function playAdhan(){
+ const src=adhanObjectUrl||await loadAdhanAudio();
+ if(!src){setNotificationStatus('No Adhan audio selected. Choose an audio file in Settings → Notifications & alarms.');playTaskTone();return false}
+ try{const audio=new Audio(src);audio.loop=false;await audio.play();return true}catch(e){setNotificationStatus('Adhan playback was blocked. Tap Test Adhan once to allow audio playback.');return false}
+}
+function showSystemNotification(title,body,tag){
+ if(!notificationSupported()||Notification.permission!=='granted')return;
+ try{
+  if(navigator.serviceWorker?.controller){navigator.serviceWorker.ready.then(reg=>reg.showNotification(title,{body,tag,renotify:true,requireInteraction:true,icon:'./manifest.json'})).catch(()=>new Notification(title,{body,tag,requireInteraction:true}))}
+  else new Notification(title,{body,tag,requireInteraction:true});
+ }catch(e){}
+}
+function stopAlarm(){
+ if(repeatTimer){clearInterval(repeatTimer);repeatTimer=null}
+ if(activeAlarm?.audio){try{activeAlarm.audio.pause();activeAlarm.audio.currentTime=0}catch(e){}}
+ activeAlarm=null;
+ $('alarmOverlay').classList.remove('open','alarm-active');
+ if(alarmTimer){clearTimeout(alarmTimer);alarmTimer=null}
+}
+function startAlarm(kind,title,message){
+ if(activeAlarm&&activeAlarm.key===kind+'|'+title)return;
+ stopAlarm();
+ activeAlarm={key:kind+'|'+title,kind,title,message};
+ $('alarmTitle').textContent=kind==='prayer'?'Prayer time — '+title:'Task reminder — '+title;
+ $('alarmMessage').textContent=message;
+ $('alarmOverlay').classList.add('open','alarm-active');
+ showSystemNotification(kind==='prayer'?'Prayer time: '+title:'Task reminder: '+title,message,activeAlarm.key);
+ const ring=()=>{if(!activeAlarm)return;if(kind==='prayer')playAdhan();else playTaskTone()};
+ ring();
+ const mins=Math.max(1,Number(data.settings.taskAlarmRepeat)||1);
+ repeatTimer=setInterval(ring,kind==='prayer'?60000:mins*60000);
+}
+function dueAlarmCandidates(now=new Date()){
+ const today=isoDate(now),current=now.getHours()*60+now.getMinutes(),result=[];
+ const seen=new Set();
+ for(const t of tasksForDate(today)){
+  if(!t.start||t.status==='Completed'||t.status==='Deferred')continue;
+  const m=timeMinutes(t.start);if(m!==current)continue;
+  const key=`task:${t.id}:${today}`;if(data.alarmLog?.[key])continue;
+  result.push({kind:'task',title:t.title,message:`${fmtTaskTime(t.start)} · ${t.category||'Personal'}`,key,task:t});
+ }
+ for(const p of prayerWindowsForDate(today)){
+  if(p.prayerMinute!==current)continue;
+  const key=`prayer:${p.name}:${today}`;if(data.alarmLog?.[key])continue;
+  result.push({kind:'prayer',title:p.name,message:`It's time for ${p.name} prayer.`,key});
+ }
+ return result;
+}
+function checkAlarms(){
+ if(!data.settings.notificationsEnabled)return;
+ const now=new Date();
+ // Minute-specific alarm checks are reliable while the page remains active.
+ for(const item of dueAlarmCandidates(now)){
+  data.alarmLog=data.alarmLog||{};data.alarmLog[item.key]=true;persist();
+  startAlarm(item.kind,item.title,item.message);
+ }
+ // Keep only recent alarm keys so local storage does not grow forever.
+ if(data.alarmLog){const cutoff=addDays(isoDate(now),-10);Object.keys(data.alarmLog).forEach(k=>{const date=k.slice(k.lastIndexOf(':')+1);if(/^\\d{4}-\\d{2}-\\d{2}$/.test(date)&&date<cutoff)delete data.alarmLog[k]})}
+}
+async function enableNotifications(){
+ if(!notificationSupported()){setNotificationStatus('System notifications are not supported in this browser. Keep the app open for in-page alarms.');data.settings.notificationsEnabled=true;persist();return}
+ try{const permission=await Notification.requestPermission();if(permission==='granted'){data.settings.notificationsEnabled=true;persist();setNotificationStatus('Notifications enabled. Keep My Day OS open for scheduled alarms.');showSystemNotification('My Day OS','Notifications are enabled.','my-day-os-test')}else{data.settings.notificationsEnabled=false;persist();setNotificationStatus('Notification permission was not granted. In-page alarms may still work while the app is open.')}}
+ catch(e){setNotificationStatus('Could not request notification permission in this browser.')}
+}
+function bindAlarmSettings(){
+ $('enableNotifications').onclick=enableNotifications;
+ $('taskAlarmRepeat').value=String(data.settings.taskAlarmRepeat||1);
+ $('taskAlarmRepeat').onchange=()=>{data.settings.taskAlarmRepeat=Number($('taskAlarmRepeat').value)||1;persist();setNotificationStatus('Task alarm repeat interval saved.')};
+ $('adhanAudio').onchange=e=>saveAdhanFile(e.target.files?.[0]);
+ $('testTaskAlarm').onclick=()=>{if(!data.settings.notificationsEnabled){toast('Enable notifications first.');return}startAlarm('task','Test reminder','This is a test. Press Stop alarm to silence it.')};
+ $('testAdhan').onclick=async()=>{const src=await loadAdhanAudio();if(!src){setNotificationStatus('Choose an Adhan audio file first.');return}try{const a=new Audio(src);await a.play();setNotificationStatus('Adhan audio test is playing.')}catch(e){setNotificationStatus('Tap Test Adhan again to allow audio playback.')}};
+ $('stopAlarm').onclick=stopAlarm;
+ if(!notificationSupported())setNotificationStatus('This browser does not support system notifications; in-page alarms need the app to remain open.');
+ else setNotificationStatus(Notification.permission==='granted'?'Notifications permission is already granted.':'Enable notifications to allow system notifications where supported.');
+ loadAdhanAudio();
+}
 function bind(){document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>nav(b.dataset.page));['headerAdd','sideAdd','fabAdd','taskPageAdd'].forEach(id=>$(id).onclick=()=>openTask());$('closeModal').onclick=$('cancelModal').onclick=closeTask;$('taskModal').onclick=e=>{if(e.target===$('taskModal'))closeTask()};$('simpleClose').onclick=$('simpleCancel').onclick=()=>$('simpleModal').classList.remove('open');$('taskForm').onsubmit=saveTask;$('deleteTask').onclick=deleteCurrentTask;$('prevDay').onclick=()=>{selectedDate=addDays(selectedDate,-1);renderToday()};$('nextDay').onclick=()=>{selectedDate=addDays(selectedDate,1);renderToday()};$('todayBtn').onclick=()=>{selectedDate=isoDate(new Date());renderToday()};$('jumpNow').onclick=()=>{selectedDate=isoDate(new Date());renderToday();setTimeout(()=>{const line=document.querySelector('.current-line');if(line)line.scrollIntoView({behavior:'smooth',block:'center'})},50)};$('timelineMode').onchange=()=>renderTimeline(sortedDayTasks(selectedDate));$('editPriorities').onclick=()=>toast('Use task priority to organize your top three.');$('viewTasks').onclick=()=>nav('tasks');$('taskSearch').oninput=renderTasks;$('taskStatus').onchange=renderTasks;$('taskSort').onchange=renderTasks;$('weekPrev').onclick=()=>{weekOffset--;renderCalendar()};$('weekNext').onclick=()=>{weekOffset++;renderCalendar()};$('addGoal').onclick=addGoal;$('addHabit').onclick=addHabit;$('dailyReview').onclick=dailyReview;$('planBtn').onclick=planDay;$('themeBtn').onclick=()=>{data.settings.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';persist();applyTheme()};$('langBtn').onclick=()=>{data.settings.language=data.settings.language==='en'?'ar':'en';persist();renderPage()};$('saveAppearance').onclick=()=>{data.settings.language=$('settingLanguage').value;data.settings.theme=$('settingTheme').value;data.settings.timeFormat=$('settingTimeFormat').value;data.settings.firstDay=Number($('settingFirstDay').value);persist();renderPage();toast('Preferences saved')};$('saveRoutine').onclick=()=>{['wakeTime','bedTime','workStart','workEnd','commute','breakDuration'].forEach(k=>data.settings[k]=$(k).value);persist();toast('Routine saved')};$('savePrayer').onclick=()=>{['prayerCity','prayerCountry','prayerMethod'].forEach(k=>data.settings[k]=$(k).value.trim());data.prayerCache={};persist();renderPrayer();fetchPrayer(selectedDate);$('prayerSettingsStatus').textContent='Settings saved.'};$('exportData').onclick=exportData;$('importDataBtn').onclick=()=>$('importFile').click();$('importFile').onchange=e=>{if(e.target.files[0])importData(e.target.files[0]);e.target.value=''};$('resetData').onclick=()=>{if(confirm('Delete all My Day OS data stored in this browser? This cannot be undone.')){data=structuredClone(defaultData);persist();renderPage();toast('Local data reset')}}}
-bind();applyTheme();applyLanguage();fillSettings();renderPage();
+bind();bindAlarmSettings();applyTheme();applyLanguage();fillSettings();renderPage();setInterval(checkAlarms,10000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAlarms()});window.addEventListener('focus',checkAlarms);
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 </body>

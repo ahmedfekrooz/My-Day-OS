@@ -1,83 +1,11 @@
-# My Day OS — Phase 1 MVP
+# My Day OS — Mobile Release v7
 
-A mobile-first responsive web planner with local browser persistence.
+## Changes
+- Timeline hour labels now always use 12-hour time with AM/PM (for example, 1:00 PM instead of 13:00).
+- Prayer window labels use 12-hour time too.
+- Ten-minute scale numbers are smaller and shifted away from the tick marks for better readability on iPhone.
+- Includes v6 task and prayer alarm features.
+- Preserves the existing `my-day-os-v1` localStorage key.
 
-## Run locally
-For best PWA behavior, serve this folder over HTTP rather than opening `index.html` as a file:
-- Python: `python -m http.server 8000`
-- Open `http://localhost:8000`
-
-You can also deploy the folder to any static HTTPS host. On supported browsers, use **Add to Home Screen / Install app**.
-
-## Implemented in this MVP
-- Responsive Today dashboard and time-block timeline
-- Create/edit/delete/complete tasks
-- Categories, priorities, status, estimated duration, due date
-- Daily and weekly recurrence (basic recurring display)
-- Overlap warnings with explicit confirmation
-- Unscheduled task inbox, search, filters, sorting
-- Week calendar, goals, habits, daily reflection, basic insights
-- English/Arabic interface direction toggle, light/dark theme, 12/24-hour time
-- Routine preferences and manual city/country prayer settings
-- Prayer times fetched from AlAdhan when online, with local cache
-- JSON export/import
-- PWA manifest and a simple app-shell service worker
-
-## Important MVP limitations
-- Data is stored in the current browser's localStorage. It does not sync across devices, and clearing browser data can erase it. Export backups regularly.
-- This is a single-user local-first prototype; no authentication, cloud database, encryption-at-rest layer, or account recovery is configured.
-- Prayer times require internet for a fresh date/location. Confirm the calculation method and times with your local mosque/authority.
-- Google Calendar, push notifications, natural-language parsing, actual AI planning, drag-to-reschedule, monthly view, and native mobile packaging are not implemented yet. The “Plan my day” feature is a transparent local heuristic, not an AI integration.
-- Recurrence is intentionally basic in this MVP; editing a recurring series does not provide per-occurrence exceptions.
-- PWA service worker requires HTTPS or localhost. Browser notification/push infrastructure is not configured.
-
-## Next steps for Phase 2
-1. Move persistence to a backend such as Supabase; add authentication and row-level security.
-2. Implement Google OAuth and event-ID-based, idempotent Calendar sync.
-3. Add geolocation with explicit permission, robust prayer-time settings, and notification infrastructure.
-4. Add automated tests for recurrence, timezone/date boundaries, overlap detection, RTL and mobile layouts.
-
-
-## Mobile polish update
-- Timeline now spans the full 24-hour day by default.
-- Compact mode uses 1-hour slots; detailed mode uses 30-minute slots.
-- Tap an empty time slot to start creating an activity at that time (mobile-friendly).
-- Added keyboard access for timeline slots and reduced narrow-screen horizontal overflow.
-
-
-## Mobile polish release v2
-- iPhone safe-area support for the bottom navigation, floating action button, modals, and toast messages.
-- Larger touch targets, 16px form text to reduce iOS input zoom, and a mobile bottom-sheet task editor.
-- More compact detailed timeline (30-minute slots) and accurate current-time marker placement.
-- Tapping a timeline slot uses a 30-minute default in detailed mode and a 60-minute default in compact mode.
-- Corrected the week calendar's narrow-screen CSS rule.
-- Updated the service worker cache version and made navigation/document requests network-first, so new releases should appear without asking users to clear website data.
-
-### Update safely on GitHub Pages from iPhone
-1. Keep a JSON backup from **Settings → Export** before replacing files.
-2. Open the repository on GitHub in Safari, then **Add file → Upload files**.
-3. Upload the four files from this ZIP (`index.html`, `sw.js`, `manifest.json`, and `README.md`) to the repository root, replacing files with the same names.
-4. Commit to `main`, then check **Actions → pages build and deployment** for a green check.
-5. Open `https://ahmedfekrooz.github.io/My-Day-OS/?v=3` in Safari to verify the new version.
-
-The app keeps the same `localStorage` key (`my-day-os-v1`) and the same data structure; this release does not intentionally reset or migrate user data. Do not use **Reset** or clear Safari website data as part of the update.
-
-
-## Mobile Release v4
-- Timeline background highlights every hour/half-hour overlapped by a scheduled task, including tasks that span multiple slots.
-- Prayer windows appear automatically on each selected date using the date-specific prayer times: 10 minutes before through 20 minutes after Fajr, Dhuhr, Asr, Maghrib, and Isha. These are visual recurring schedule markers and are not inserted into the user's task list.
-- Prayer markers refresh the timeline when prayer times finish loading.
-- The localStorage key remains `my-day-os-v1`; existing tasks and settings are not intentionally migrated or reset.
-- Service worker shell cache version bumped to v4.
-
-
-## v4 timeline fix
-- Timeline rows have fixed heights to prevent prayer labels from stretching the hour grid.
-- Task and prayer background ranges are positioned by exact start/end minutes.
-- Task cards span their scheduled duration; prayer labels no longer participate in document flow.
-
-
-## v5 updates
-- Added minor timeline ruler marks and minute labels every 10 minutes between hourly labels.
-- Task cards always display their start and end times in 12-hour AM/PM format, independent of the global time-format setting.
-- Bumped the service-worker cache version to v5.
+## Update
+Back up your data using Settings → Export, then upload `index.html`, `sw.js`, `manifest.json`, and `README.md` to the repository root and commit to `main`.
