@@ -1,4 +1,4 @@
-# My Day OS — Mobile Release v9
+# My Day OS — Mobile Release v12
 
 ## Changes
 - Prayer alarm defaults to the Mishary Rashid Alafasy Adhan recording linked from AlAdhan's public Adhan download page.
@@ -12,3 +12,6 @@ AlAdhan download page lists “Yet Another Adhan by Mishary Rashid Alafasy”: h
 
 ## Update
 Back up data via Settings → Export. Upload `index.html`, `sw.js`, `manifest.json`, and `README.md` to the repository root and commit to `main`.
+
+
+Alarm controls: adjustable task-alarm volume, separate Adhan volume, selectable task tones, and repeat interval while an alarm remains active. iPhone hardware volume still controls the maximum audible level, and Safari may suspend alarms when the app is backgrounded.
