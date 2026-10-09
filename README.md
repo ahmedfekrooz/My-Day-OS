@@ -1,4 +1,4 @@
-# My Day OS — Mobile Release v12
+# My Day OS — Mobile Release v13
 
 ## Changes
 - Prayer alarm defaults to the Mishary Rashid Alafasy Adhan recording linked from AlAdhan's public Adhan download page.
