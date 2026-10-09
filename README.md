@@ -36,3 +36,10 @@ You can also deploy the folder to any static HTTPS host. On supported browsers, 
 2. Implement Google OAuth and event-ID-based, idempotent Calendar sync.
 3. Add geolocation with explicit permission, robust prayer-time settings, and notification infrastructure.
 4. Add automated tests for recurrence, timezone/date boundaries, overlap detection, RTL and mobile layouts.
+
+
+## Mobile polish update
+- Timeline now spans the full 24-hour day by default.
+- Compact mode uses 1-hour slots; detailed mode uses 30-minute slots.
+- Tap an empty time slot to start creating an activity at that time (mobile-friendly).
+- Added keyboard access for timeline slots and reduced narrow-screen horizontal overflow.
