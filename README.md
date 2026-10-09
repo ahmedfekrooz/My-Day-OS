@@ -61,3 +61,11 @@ You can also deploy the folder to any static HTTPS host. On supported browsers, 
 5. Open `https://ahmedfekrooz.github.io/My-Day-OS/?v=3` in Safari to verify the new version.
 
 The app keeps the same `localStorage` key (`my-day-os-v1`) and the same data structure; this release does not intentionally reset or migrate user data. Do not use **Reset** or clear Safari website data as part of the update.
+
+
+## Mobile Release v3
+- Timeline background highlights every hour/half-hour overlapped by a scheduled task, including tasks that span multiple slots.
+- Prayer windows appear automatically on each selected date using the date-specific prayer times: 10 minutes before through 20 minutes after Fajr, Dhuhr, Asr, Maghrib, and Isha. These are visual recurring schedule markers and are not inserted into the user's task list.
+- Prayer markers refresh the timeline when prayer times finish loading.
+- The localStorage key remains `my-day-os-v1`; existing tasks and settings are not intentionally migrated or reset.
+- Service worker shell cache version bumped to v3.
