@@ -1,7 +1,7 @@
 {
   "name": "My Day OS — Personal Life Planner",
   "short_name": "My Day OS",
-  "description": "A calm, practical daily planner.",
+  "description": "A calm, mobile-first daily planner for iPhone and desktop.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f5f7f6",

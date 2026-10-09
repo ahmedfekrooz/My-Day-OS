@@ -43,3 +43,21 @@ You can also deploy the folder to any static HTTPS host. On supported browsers, 
 - Compact mode uses 1-hour slots; detailed mode uses 30-minute slots.
 - Tap an empty time slot to start creating an activity at that time (mobile-friendly).
 - Added keyboard access for timeline slots and reduced narrow-screen horizontal overflow.
+
+
+## Mobile polish release v2
+- iPhone safe-area support for the bottom navigation, floating action button, modals, and toast messages.
+- Larger touch targets, 16px form text to reduce iOS input zoom, and a mobile bottom-sheet task editor.
+- More compact detailed timeline (30-minute slots) and accurate current-time marker placement.
+- Tapping a timeline slot uses a 30-minute default in detailed mode and a 60-minute default in compact mode.
+- Corrected the week calendar's narrow-screen CSS rule.
+- Updated the service worker cache version and made navigation/document requests network-first, so new releases should appear without asking users to clear website data.
+
+### Update safely on GitHub Pages from iPhone
+1. Keep a JSON backup from **Settings → Export** before replacing files.
+2. Open the repository on GitHub in Safari, then **Add file → Upload files**.
+3. Upload the four files from this ZIP (`index.html`, `sw.js`, `manifest.json`, and `README.md`) to the repository root, replacing files with the same names.
+4. Commit to `main`, then check **Actions → pages build and deployment** for a green check.
+5. Open `https://ahmedfekrooz.github.io/My-Day-OS/?v=3` in Safari to verify the new version.
+
+The app keeps the same `localStorage` key (`my-day-os-v1`) and the same data structure; this release does not intentionally reset or migrate user data. Do not use **Reset** or clear Safari website data as part of the update.
