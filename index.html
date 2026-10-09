@@ -24,12 +24,23 @@ input,select,textarea{font-size:16px}
 .time-row{min-height:var(--slot-compact)}
 .timeline.detailed .time-row{min-height:var(--slot-detailed)}
 .time-lane{cursor:pointer;transition:background-color .15s ease}
-/* Timeline interval shading: each occupied hour/half-hour stays highlighted. */
-.time-lane.task-time-active{background:color-mix(in srgb,var(--accent) 17%,var(--surface));box-shadow:inset 3px 0 0 color-mix(in srgb,var(--accent) 75%,transparent)}
-.time-lane.prayer-time-active{background:color-mix(in srgb,#d8b45b 20%,var(--surface));box-shadow:inset 3px 0 0 #b18b35}
-.time-lane.task-time-active.prayer-time-active{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 14%,var(--surface)),color-mix(in srgb,#d8b45b 19%,var(--surface)))}
-.prayer-marker{display:block;position:relative;margin:4px 0 6px;padding:5px 8px;border-radius:8px;border-inline-start:3px solid #b18b35;background:color-mix(in srgb,#d8b45b 24%,var(--surface));color:var(--text);font-size:11px;font-weight:700;line-height:1.35;overflow-wrap:anywhere;cursor:default}
-.prayer-marker small{display:block;color:var(--muted);font-weight:500;font-size:10px;margin-top:2px}
+/* Timeline uses fixed-height rows; task/prayer overlays are positioned by exact minutes. */
+.time-row{height:var(--slot-compact);min-height:var(--slot-compact);flex:none;overflow:visible}
+.timeline.detailed .time-row{height:var(--slot-detailed);min-height:var(--slot-detailed)}
+.time-lane{height:100%;cursor:pointer;transition:background-color .15s ease}
+.timeline-range{position:absolute;z-index:1;pointer-events:none;border-radius:0}
+.timeline-range.task-range{background:color-mix(in srgb,var(--accent) 18%,transparent);border-inline-start:3px solid color-mix(in srgb,var(--accent) 80%,transparent)}
+.timeline-range.prayer-range{background:color-mix(in srgb,#d8b45b 23%,transparent);border-inline-start:3px solid #b18b35}
+.event.timeline-event{position:absolute;z-index:4;margin:0;min-height:0;overflow:hidden;border-radius:10px;padding:6px 8px;align-items:center}
+.event.timeline-event .event-title{font-size:12px;line-height:1.2}
+.event.timeline-event .event-meta{font-size:10px;line-height:1.25}
+.event.timeline-event .mini{flex:none}
+.prayer-marker{position:absolute;z-index:2;margin:0;padding:4px 7px;border-radius:7px;border-inline-start:3px solid #b18b35;background:color-mix(in srgb,#d8b45b 30%,var(--surface));color:var(--text);font-size:10px;font-weight:700;line-height:1.25;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none}
+.prayer-marker small{display:none}
+
+/* v5: ten-minute ruler between hour marks */
+.minute-scale-tick{position:absolute;z-index:3;left:var(--lane-left);width:9px;border-top:1px solid color-mix(in srgb,var(--muted) 70%,transparent);height:0;pointer-events:none}
+.minute-scale-label{position:absolute;z-index:3;left:0;width:48px;text-align:right;padding-right:4px;transform:translateY(-5px);font-size:8px;line-height:10px;color:var(--muted);opacity:.9;pointer-events:none;font-variant-numeric:tabular-nums}
 .time-lane:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;background:var(--surface2)}
 .week-grid{grid-template-columns:repeat(7,minmax(115px,1fr));overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .table-wrap{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
@@ -60,7 +71,7 @@ input,select,textarea{font-size:16px}
   .time-row{grid-template-columns:39px minmax(0,1fr);gap:6px}
   .time-label{font-size:10px}
   .current-line{left:39px}
-  .event{min-height:40px;padding:7px 8px;gap:5px}
+  .event{min-height:40px;padding:7px 8px;gap:5px}.event.timeline-event{min-height:0;padding:5px 6px}
   .event-title{font-size:12px;line-height:1.35}
   .event-meta{font-size:10px;overflow-wrap:anywhere}
   .mini{min-width:32px;min-height:32px}
@@ -208,6 +219,7 @@ function dateObj(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1
 function addDays(s,n){let d=dateObj(s);d.setDate(d.getDate()+n);return isoDate(d)}
 function timeMinutes(t){if(!t)return null;const [h,m]=t.split(':').map(Number);return h*60+m}
 function fmtTime(t){if(!t)return '';let [h,m]=t.split(':').map(Number);if(data.settings.timeFormat==='12'){const ap=h>=12?'PM':'AM';h=h%12||12;return `${h}:${String(m).padStart(2,'0')} ${ap}`}return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`}
+function fmtTaskTime(t){if(!t)return '';let [h,m]=t.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return `${h}:${String(m).padStart(2,'0')} ${ap}`}
 function prettyDate(s,opts={weekday:'short',month:'short',day:'numeric'}){return dateObj(s).toLocaleDateString(data.settings.language==='ar'?'ar-EG':'en-US',opts)}
 function uid(){return crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -222,9 +234,65 @@ function renderPage(){applyTheme();applyLanguage();renderHeader();if(currentPage
 function renderHeader(){const h=new Date().getHours(),ar=data.settings.language==='ar';$('pageTitle').textContent=currentPage==='today'?(ar?(h<12?'صباح الخير':h<17?'مساء الخير':'مساء الخير'):(h<12?'Good morning':h<17?'Good afternoon':'Good evening')):({calendar:ar?'التقويم':'Calendar',tasks:ar?'المهام':'Your tasks',goals:ar?'الأهداف والعادات':'Goals & habits',insights:ar?'ملخص الأداء':'Insights',settings:ar?'الإعدادات':'Settings'}[currentPage]);$('pageSubtitle').textContent=currentPage==='today'?(ar?'خطط واقعي، وخلّي مساحة للي يهمك.':'A clear plan makes room for what matters.'):(ar?'نظّم يومك بالطريقة اللي تناسبك.':'Organize your day in a way that works for you.');$('sidebarDate').textContent=prettyDate(isoDate(new Date()),{weekday:'long',month:'long',day:'numeric',year:'numeric'})}
 function renderToday(){const dayTasks=tasksForDate(selectedDate),done=dayTasks.filter(t=>t.status==='Completed').length,remaining=dayTasks.filter(t=>t.status!=='Completed').length;$('completedCount').textContent=done;$('remainingCount').textContent=remaining;$('completedFoot').textContent=`${done} of ${dayTasks.length} tasks`;const pct=dayTasks.length?Math.round(done/dayTasks.length*100):0;$('dayProgress').style.width=pct+'%';$('progressLabel').textContent=`${pct}% of tasks completed`;const scheduled=sortedDayTasks(selectedDate);let busy=scheduled.reduce((n,t)=>n+Math.max(0,(timeMinutes(t.end)||0)-(timeMinutes(t.start)||0)),0);$('freeTime').textContent=`${Math.max(0,1440-busy)>=60?Math.floor((1440-busy)/60)+'h ':''}${Math.max(0,1440-busy)%60}m`;$('selectedDateLabel').textContent=prettyDate(selectedDate,{month:'short',day:'numeric'});$('timelineHint').textContent=prettyDate(selectedDate,{weekday:'long',month:'long',day:'numeric'});renderTimeline(scheduled);renderPriorities(dayTasks);renderPrayer();renderUpNext(scheduled)}
 function prayerWindowsForDate(s){const key=`${s}|${data.settings.prayerCity}|${data.settings.prayerCountry}|${data.settings.prayerMethod}`,cache=data.prayerCache?.[key];if(!cache)return [];return ['Fajr','Dhuhr','Asr','Maghrib','Isha'].filter(name=>cache[name]).map(name=>{const prayerMinute=timeMinutes(cache[name]);return {name,prayerMinute,start:Math.max(0,prayerMinute-10),end:Math.min(1440,prayerMinute+20)}})}
-function renderTimeline(tasks){const root=$('timeline'),compact=$('timelineMode').value==='compact';root.classList.toggle('detailed',!compact);let html='';const start=0,end=24,step=compact?60:30,prayers=prayerWindowsForDate(selectedDate),scheduled=tasks.filter(t=>t.start&&t.end&&timeMinutes(t.start)!==null&&timeMinutes(t.end)!==null&&timeMinutes(t.end)>timeMinutes(t.start));const now=new Date(),isToday=selectedDate===isoDate(now);for(let m=start*60;m<end*60;m+=step){const rowEnd=m+step,hour=Math.floor(m/60),minute=m%60,label=minute===0?fmtTime(`${String(hour).padStart(2,'0')}:00`):'';const slotTasks=tasks.filter(t=>t.start&&timeMinutes(t.start)>=m&&timeMinutes(t.start)<rowEnd);const hasTask=scheduled.some(t=>timeMinutes(t.start)<rowEnd&&timeMinutes(t.end)>m);const rowPrayers=prayers.filter(p=>p.start<rowEnd&&p.end>m);const startingPrayers=prayers.filter(p=>p.start>=m&&p.start<rowEnd);const classes=['time-lane','drop-target',hasTask?'task-time-active':'',rowPrayers.length?'prayer-time-active':''].filter(Boolean).join(' ');const markers=startingPrayers.map(p=>`<div class="prayer-marker" aria-label="${p.name} prayer time window"><span>☾ ${p.name} prayer</span><small>${fmtTime(minToTime(p.start))}–${fmtTime(minToTime(p.end))} · 10 min before / 20 min after</small></div>`).join('');html+=`<div class="time-row"><div class="time-label">${label}</div><div class="${classes}" data-time="${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}" data-slot-end="${minToTime(rowEnd)}">${markers}${slotTasks.map(t=>eventHTML(t)).join('')}</div></div>`}root.innerHTML=html;if(isToday){const mins=now.getHours()*60+now.getMinutes(),rowHeight=root.querySelector('.time-row')?.getBoundingClientRect().height||(compact?58:36),top=(mins-start*60)/step*rowHeight;if(mins>=start*60&&mins<end*60)root.insertAdjacentHTML('beforeend',`<div class="current-line" style="top:${top}px"></div>`)}root.querySelectorAll('.time-lane').forEach(l=>{l.setAttribute('role','button');l.setAttribute('tabindex','0');l.setAttribute('aria-label','Add activity starting at '+fmtTime(l.dataset.time));l.addEventListener('click',e=>{if(e.target.closest('.event,.prayer-marker'))return;openTask(null,{date:selectedDate,start:l.dataset.time,end:addTime(l.dataset.time,compact?60:30)});});l.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('.event,.prayer-marker')){e.preventDefault();openTask(null,{date:selectedDate,start:l.dataset.time,end:addTime(l.dataset.time,compact?60:30)});}})});root.querySelectorAll('.event[data-id]').forEach(el=>el.addEventListener('click',e=>{if(e.target.closest('.mini'))return;openTask(el.dataset.id)}));root.querySelectorAll('[data-toggle]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();toggleTask(b.dataset.toggle)}))}
+function renderTimeline(tasks){
+ const root=$('timeline'),compact=$('timelineMode').value==='compact';
+ root.classList.toggle('detailed',!compact);
+ const start=0,end=24,step=compact?60:30,prayers=prayerWindowsForDate(selectedDate);
+ const scheduled=tasks.filter(t=>t.start&&t.end&&timeMinutes(t.start)!==null&&timeMinutes(t.end)!==null&&timeMinutes(t.end)>timeMinutes(t.start));
+ const now=new Date(),isToday=selectedDate===isoDate(now);
+ let html='';
+ for(let m=start*60;m<end*60;m+=step){
+  const rowEnd=m+step,hour=Math.floor(m/60),minute=m%60;
+  const label=minute===0?fmtTime(`${String(hour).padStart(2,'0')}:00`):'';
+  html+=`<div class="time-row"><div class="time-label">${label}</div><div class="time-lane drop-target" data-time="${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}" data-slot-end="${minToTime(rowEnd)}"></div></div>`;
+ }
+ root.innerHTML=html;
+ const lanes=[...root.querySelectorAll('.time-lane')];
+ if(!lanes.length)return;
+ const firstLane=lanes[0],left=firstLane.offsetLeft,width=firstLane.getBoundingClientRect().width;
+ const rowHeight=lanes[0].closest('.time-row').getBoundingClientRect().height|| (compact?58:36);
+ const pxPerMinute=rowHeight/step;
+ root.style.setProperty('--lane-left',`${left}px`);
+ // Minor ticks and minute labels at :10, :20, :30, :40 and :50.
+ for(let minute=10;minute<24*60;minute+=10){
+  if(minute%60===0)continue;
+  const top=minute*pxPerMinute;
+  const mm=String(minute%60).padStart(2,'0');
+  root.insertAdjacentHTML('beforeend',`<div class="minute-scale-tick" style="top:${top}px"></div><div class="minute-scale-label" style="top:${top}px">${mm}</div>`);
+ }
+ const overlay=(cls,from,to,content='')=>{
+  const top=Math.max(0,from)*pxPerMinute,height=Math.max(2,(to-from)*pxPerMinute);
+  root.insertAdjacentHTML('beforeend',`<div class="timeline-range ${cls}" style="left:${left}px;width:${width}px;top:${top}px;height:${height}px"></div>`);
+ };
+ // Shade only the exact scheduled interval, not whole unrelated hours.
+ scheduled.forEach(t=>{
+  const a=timeMinutes(t.start),b=timeMinutes(t.end);
+  overlay('task-range',a,b);
+ });
+ prayers.forEach(p=>{
+  overlay('prayer-range',p.start,p.end);
+  const top=p.start*pxPerMinute;
+  const label=`☾ ${p.name} · ${fmtTime(minToTime(p.start))}–${fmtTime(minToTime(p.end))}`;
+  root.insertAdjacentHTML('beforeend',`<div class="prayer-marker" aria-label="${p.name} prayer time window" style="left:${left+4}px;width:${Math.max(40,width-8)}px;top:${top+2}px;height:${Math.min(25,Math.max(18,(p.end-p.start)*pxPerMinute-3))}px">${esc(label)}</div>`);
+ });
+ scheduled.forEach(t=>{
+  const a=timeMinutes(t.start),b=timeMinutes(t.end),top=a*pxPerMinute,height=Math.max(24,(b-a)*pxPerMinute-2);
+  root.insertAdjacentHTML('beforeend',eventHTML(t).replace('class="event ', 'class="event timeline-event ').replace('style="border-color:',`style="left:${left+3}px;width:${Math.max(30,width-6)}px;top:${top+1}px;height:${height}px;border-color:`));
+ });
+ if(isToday){
+  const mins=now.getHours()*60+now.getMinutes(),top=mins*pxPerMinute;
+  if(mins>=start*60&&mins<end*60)root.insertAdjacentHTML('beforeend',`<div class="current-line" style="top:${top}px"></div>`);
+ }
+ root.querySelectorAll('.time-lane').forEach(l=>{
+  l.setAttribute('role','button');l.setAttribute('tabindex','0');l.setAttribute('aria-label','Add activity starting at '+fmtTime(l.dataset.time));
+  l.addEventListener('click',e=>{if(e.target.closest('.event,.prayer-marker'))return;openTask(null,{date:selectedDate,start:l.dataset.time,end:addTime(l.dataset.time,compact?60:30)});});
+  l.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('.event,.prayer-marker')){e.preventDefault();openTask(null,{date:selectedDate,start:l.dataset.time,end:addTime(l.dataset.time,compact?60:30)});}});
+ });
+ root.querySelectorAll('.event[data-id]').forEach(el=>el.addEventListener('click',e=>{if(e.target.closest('.mini'))return;openTask(el.dataset.id)}));
+ root.querySelectorAll('[data-toggle]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();toggleTask(b.dataset.toggle)}));
+}
 function addTime(t,n){let m=(timeMinutes(t)+n)%1440;return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`}
-function eventHTML(t){const catColor={'Work':'#4675b9','Learning':'#8d69bb','Health':'#3c9870','Worship':'#b18b35','Relationships':'#d17c9c','Business & Finance':'#657b8e','Rest':'#739e9a','Personal':'#147d75','Other':'#8b9290'}[t.category]||'#147d75';return `<div class="event ${t.status==='Completed'?'completed':''}" data-id="${esc(t.id)}" style="border-color:${catColor}"><div class="event-main"><div class="event-title">${esc(t.title)}</div><div class="event-meta">${fmtTime(t.start)}–${fmtTime(t.end)} · ${esc(t.category||'Personal')}</div></div><button class="mini" data-toggle="${esc(t.id)}" title="${t.status==='Completed'?'Mark incomplete':'Complete'}">${t.status==='Completed'?'↶':'✓'}</button></div>`}
+function eventHTML(t){const catColor={'Work':'#4675b9','Learning':'#8d69bb','Health':'#3c9870','Worship':'#b18b35','Relationships':'#d17c9c','Business & Finance':'#657b8e','Rest':'#739e9a','Personal':'#147d75','Other':'#8b9290'}[t.category]||'#147d75';return `<div class="event ${t.status==='Completed'?'completed':''}" data-id="${esc(t.id)}" style="border-color:${catColor}"><div class="event-main"><div class="event-title">${esc(t.title)}</div><div class="event-meta">${fmtTaskTime(t.start)}–${fmtTaskTime(t.end)} · ${esc(t.category||'Personal')}</div></div><button class="mini" data-toggle="${esc(t.id)}" title="${t.status==='Completed'?'Mark incomplete':'Complete'}">${t.status==='Completed'?'↶':'✓'}</button></div>`}
 function renderPriorities(tasks){let chosen=tasks.filter(t=>t.topPriority&&t.status!=='Completed').slice(0,3);if(!chosen.length)chosen=tasks.filter(t=>t.status!=='Completed').sort((a,b)=>priorityScore(a.priority)-priorityScore(b.priority)).slice(0,3);$('priorityList').innerHTML=chosen.length?chosen.map(t=>`<div class="task-row"><input class="check" type="checkbox" ${t.status==='Completed'?'checked':''} data-check="${esc(t.id)}" aria-label="Complete ${esc(t.title)}"><div class="task-copy"><strong>${esc(t.title)}</strong><small>${esc(t.priority)} priority${t.start?' · '+fmtTime(t.start):' · Unscheduled'}</small></div><button class="mini" data-edit="${esc(t.id)}" aria-label="Edit task">⋯</button></div>`).join(''):'<div class="empty">No priorities yet.<br>Add a task to get started.</div>'; $('priorityList').querySelectorAll('[data-check]').forEach(x=>x.onchange=()=>toggleTask(x.dataset.check));$('priorityList').querySelectorAll('[data-edit]').forEach(x=>x.onclick=()=>openTask(x.dataset.edit))}
 function renderUpNext(tasks){const now=new Date(),cur=selectedDate===isoDate(now)?`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`:'00:00';let upcoming=tasks.filter(t=>t.status!=='Completed'&&t.start>=cur).slice(0,4);$('upNextList').innerHTML=upcoming.length?upcoming.map(t=>`<div class="task-row"><div class="task-copy"><strong>${esc(t.title)}</strong><small>${fmtTime(t.start)}–${fmtTime(t.end)} · ${esc(t.category)}</small></div><span class="badge">${esc(t.priority)}</span></div>`).join(''):'<div class="empty">Nothing scheduled next.<br>Enjoy the breathing room.</div>'}
 function priorityScore(p){return ({Urgent:0,High:1,Medium:2,Low:3})[p]??2}

@@ -63,9 +63,21 @@ You can also deploy the folder to any static HTTPS host. On supported browsers, 
 The app keeps the same `localStorage` key (`my-day-os-v1`) and the same data structure; this release does not intentionally reset or migrate user data. Do not use **Reset** or clear Safari website data as part of the update.
 
 
-## Mobile Release v3
+## Mobile Release v4
 - Timeline background highlights every hour/half-hour overlapped by a scheduled task, including tasks that span multiple slots.
 - Prayer windows appear automatically on each selected date using the date-specific prayer times: 10 minutes before through 20 minutes after Fajr, Dhuhr, Asr, Maghrib, and Isha. These are visual recurring schedule markers and are not inserted into the user's task list.
 - Prayer markers refresh the timeline when prayer times finish loading.
 - The localStorage key remains `my-day-os-v1`; existing tasks and settings are not intentionally migrated or reset.
-- Service worker shell cache version bumped to v3.
+- Service worker shell cache version bumped to v4.
+
+
+## v4 timeline fix
+- Timeline rows have fixed heights to prevent prayer labels from stretching the hour grid.
+- Task and prayer background ranges are positioned by exact start/end minutes.
+- Task cards span their scheduled duration; prayer labels no longer participate in document flow.
+
+
+## v5 updates
+- Added minor timeline ruler marks and minute labels every 10 minutes between hourly labels.
+- Task cards always display their start and end times in 12-hour AM/PM format, independent of the global time-format setting.
+- Bumped the service-worker cache version to v5.
