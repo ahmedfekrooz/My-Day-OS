@@ -15,3 +15,8 @@ Back up data via Settings → Export. Upload `index.html`, `sw.js`, `manifest.js
 
 
 Alarm controls: adjustable task-alarm volume, separate Adhan volume, selectable task tones, and repeat interval while an alarm remains active. iPhone hardware volume still controls the maximum audible level, and Safari may suspend alarms when the app is backgrounded.
+
+
+## v14 updates
+- Toggle daily routine visibility on the Today timeline from Settings.
+- Routine blocks use distinct colors for easier scanning.
